@@ -9,7 +9,7 @@ class Word2Vec(object):
     def __init__(self):
         pass
 
-    def softmax(self, v: np.array):
+    def softmax(self, v):
         """
         v : matrix or vector of numpy
 
@@ -28,3 +28,31 @@ class Word2Vec(object):
             exp_v = np.exp(v - v.max())
             soft_v = exp_v / exp_v.sum(axis=0)
         return soft_v
+
+    def sigmoid(self, v):
+        """
+        v : vector of numpy
+
+        get sigmoid value
+        implements measures of overflow
+        """
+
+        # calculation range
+        sig_range = 34.53877639491
+        if v <= -sig_range:
+            return 1e-15
+        elif v >= sig_range:
+            return 1.0 - 1e-15
+        return 1.0 / (1.0 + np.exp(-v))
+
+    def sigmoid_gradient(self, fs):
+        """
+        fs : sigmoid value
+
+        gradient of sigmoid method
+        ex)
+        fs = sigmoid(v)
+        sigmoid_gradient(fs)
+        """
+
+        return fs * (1 - fs)
