@@ -35,7 +35,7 @@ class Word2Vec(object):
         train word2vec
         """
 
-        pass
+        self.train_skipgram(window, eta)
 
     def train_skipgram(self, window: int=3, eta: float=0.1):
         """
@@ -46,9 +46,25 @@ class Word2Vec(object):
         """
 
         for _ in range(100):
-            new_hidden_w = numpy.zeros(self.hidden_w.shape)
-            new_output_w = numpy.zeros(self.output_w.shape)
-            pass
+            old_hidden_w = self.hidden_w
+            old_output_w = self.output_w
+            for sentence in self.sentences:
+                for index, word in enumerate(sentence):
+                    s = index - window if index - window > 0 else 0
+                    e = index + window if index + window <= len(sentence) else len(sentence)
+                    contexts = [self.vocab.index(sentence[i]) for i in range(s, e) if index != i]
+                    for i in range(len(self.hidden_w[0])):
+                        self.hidden_w[index, i] = self.update_hidden_w(i, index, contexts, eta)
+                    for i in range(len(self.output_w)):
+                        for j in range(len(self.output_w[i])):
+                            self.output_w[i, j] = self.update_output_w(i, j, index, contexts, eta)
+            if np.linalg.norm((old_hidden_w - self.hidden_w).flatten()) < 0.1 and\
+                    np.linalg.norm((old_output_w - self.output_w).flatten()) < 0.1:
+                break
+
+        print(_)
+        print(np.linalg.norm((old_hidden_w - self.hidden_w).flatten()))
+        print(np.linalg.norm((old_output_w - self.output_w).flatten()))
 
     def input_to_hidden(self, vocab_i: int):
         """
@@ -82,8 +98,8 @@ class Word2Vec(object):
 
         vecs = []
         for c in contexts:
-            for v in self.vocab:
-                y_v = self.softmax(hidden_to_output(input_to_hidden(v)))
+            for v in range(len(self.vocab)):
+                y_v = self.softmax(self.hidden_to_output(self.input_to_hidden(v)))[wi].max()
                 t_v = 1 if c == v else 0
                 v_d_vj = self.output_w[v, i]
                 vecs.append((y_v - t_v) * v_d_vj)
@@ -102,7 +118,7 @@ class Word2Vec(object):
 
         vecs = []
         for c in contexts:
-            y_i = self.softmax(hidden_to_output(input_to_hidden(i)))
+            y_i = self.softmax(self.hidden_to_output(self.input_to_hidden(i)))[wi].max()
             t_i = 1 if c == i else 0
             v_d_wij = self.hidden_w[wi, j]
             vecs.append((y_i - t_i) * v_d_wij)
