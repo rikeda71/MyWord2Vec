@@ -22,9 +22,11 @@ class Word2Vec(object):
         self.one_hot = np.mat(np.identity(len(vocab)))
         # weight matrix. it is used in hidden-layer
         # ex) hidden_w * one_hot[0].T
-        self.hidden_w = np.mat(np.random.rand(dimention, len(vocab)))
+        self.hidden_w = np.mat(np.random.rand(dimention, len(vocab)) -
+                               np.full((dimention, len(vocab)), 0.5))
         # ex) output_w * (hidden_w * one_hot[0])
-        self.output_w = np.mat(np.random.rand(len(vocab), dimention))
+        self.output_w = np.mat(np.random.rand(len(vocab), dimention) -
+                               np.full((len(vocab), dimention), 0.5))
 
     def train(self, algorithm="skipgram", window: int=3, eta: float=0.1):
         """
@@ -45,26 +47,30 @@ class Word2Vec(object):
         train word2vec by skipgram
         """
 
-        for _ in range(100):
+        for k in range(100):
             old_hidden_w = self.hidden_w
             old_output_w = self.output_w
             for sentence in self.sentences:
+                print(sentence)
                 for index, word in enumerate(sentence):
                     s = index - window if index - window > 0 else 0
                     e = index + window if index + window <= len(sentence) else len(sentence)
                     contexts = [self.vocab.index(sentence[i]) for i in range(s, e) if index != i]
-                    for i in range(len(self.hidden_w[0])):
-                        self.hidden_w[index, i] = self.update_hidden_w(i, index, contexts, eta)
-                    for i in range(len(self.output_w)):
-                        for j in range(len(self.output_w[i])):
-                            self.output_w[i, j] = self.update_output_w(i, j, index, contexts, eta)
+                    print(self.hidden_w)
+                    print(self.output_w)
+                    # update weight: hidden layer to output layer
+                    self.update_output_w(index, contexts, eta)
+                    # update weight: input layer to hidden layer
+                    self.update_hidden_w(index, contexts, eta)
             if np.linalg.norm((old_hidden_w - self.hidden_w).flatten()) < 0.1 and\
                     np.linalg.norm((old_output_w - self.output_w).flatten()) < 0.1:
                 break
 
-        print(_)
-        print(np.linalg.norm((old_hidden_w - self.hidden_w).flatten()))
-        print(np.linalg.norm((old_output_w - self.output_w).flatten()))
+            eta *= 0.9
+            print(k)
+            print(np.linalg.norm((old_hidden_w - self.hidden_w).flatten()))
+            print(np.linalg.norm((old_output_w - self.output_w).flatten()))
+            print("----------------")
 
     def input_to_hidden(self, vocab_i: int):
         """
@@ -86,9 +92,8 @@ class Word2Vec(object):
 
         return self.output_w * v_ih
 
-    def update_hidden_w(self, i: int, wi: int, contexts: list, eta: float=0.1):
+    def update_hidden_w(self, wi: int, contexts: list, eta: float=0.1):
         """
-        i        : index of row
         wi       : index of reference word
         contexts : numbers of words in window
         eta      : training rate
@@ -96,16 +101,25 @@ class Word2Vec(object):
         update formula of weight of hidden layer
         """
 
-        vecs = []
+        y_c = np.mat(np.zeros((len(self.vocab), len(self.vocab))))
+        t_c = np.mat(np.zeros((len(self.vocab), len(self.vocab))))
+        for c in contexts:
+            y_c += self.softmax(self.hidden_to_output(self.input_to_hidden(c)))
+            t_c[c] += np.mat(np.ones(len(self.vocab)))
+        self.hidden_w -= eta * ((y_c - t_c) * self.output_w).T
+        """
+        vecs = 0
         for c in contexts:
             for v in range(len(self.vocab)):
+                self.softmax(self.hidden_to_output(self.input_to_hidden(c)))
                 y_v = self.softmax(self.hidden_to_output(self.input_to_hidden(v)))[wi].max()
                 t_v = 1 if c == v else 0
                 v_d_vj = self.output_w[v, i]
                 vecs.append((y_v - t_v) * v_d_vj)
         return self.hidden_w[wi, i] - eta * sum(vecs)
+        """
 
-    def update_output_w(self, i: int, j: int, wi: int, contexts: list, eta: float=0.1):
+    def update_output_w(self, wi: int, contexts: list, eta: float=0.1):
         """
         i        : index of row
         j        : index of column
@@ -116,6 +130,13 @@ class Word2Vec(object):
         update formula of weight of output layer
         """
 
+        y_c = np.mat(np.zeros((len(self.vocab), len(self.vocab))))
+        t_c = np.mat(np.zeros((len(self.vocab), len(self.vocab))))
+        for c in contexts:
+            y_c += self.softmax(self.hidden_to_output(self.input_to_hidden(c)))
+            t_c[c] += np.mat(np.ones(len(self.vocab)))
+        self.output_w -= (eta * (y_c - t_c) * self.hidden_w.T)
+        """
         vecs = []
         for c in contexts:
             y_i = self.softmax(self.hidden_to_output(self.input_to_hidden(i)))[wi].max()
@@ -123,6 +144,7 @@ class Word2Vec(object):
             v_d_wij = self.hidden_w[wi, j]
             vecs.append((y_i - t_i) * v_d_wij)
         return self.output_w[i, j] - eta * sum(vecs)
+        """
 
     def softmax(self, v):
         """
