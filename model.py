@@ -39,7 +39,7 @@ class Word2Vec(object):
 
         self.train_skipgram(window, eta)
 
-    def train_skipgram(self, window: int=3, eta: float=0.1):
+    def train_skipgram(self, window: int=3, eta: float=0.01):
         """
         window    : range of surrounding words
         eta       : training rate
@@ -105,19 +105,10 @@ class Word2Vec(object):
         t_c = np.mat(np.zeros((len(self.vocab), len(self.vocab))))
         for c in contexts:
             y_c += self.softmax(self.hidden_to_output(self.input_to_hidden(c)))
-            t_c[c] += np.mat(np.ones(len(self.vocab)))
-        self.hidden_w -= eta * ((y_c - t_c) * self.output_w).T
-        """
-        vecs = 0
-        for c in contexts:
-            for v in range(len(self.vocab)):
-                self.softmax(self.hidden_to_output(self.input_to_hidden(c)))
-                y_v = self.softmax(self.hidden_to_output(self.input_to_hidden(v)))[wi].max()
-                t_v = 1 if c == v else 0
-                v_d_vj = self.output_w[v, i]
-                vecs.append((y_v - t_v) * v_d_vj)
-        return self.hidden_w[wi, i] - eta * sum(vecs)
-        """
+            t_c[c, c] += 1
+        dv = np.sum(((y_c - t_c).T * self.output_w), axis=1).T
+        self.hidden_w[wi] -= eta * dv
+        # self.hidden_w[wi] -= eta * ((y_c - t_c) * self.output_w).T
 
     def update_output_w(self, wi: int, contexts: list, eta: float=0.1):
         """
@@ -134,17 +125,9 @@ class Word2Vec(object):
         t_c = np.mat(np.zeros((len(self.vocab), len(self.vocab))))
         for c in contexts:
             y_c += self.softmax(self.hidden_to_output(self.input_to_hidden(c)))
-            t_c[c] += np.mat(np.ones(len(self.vocab)))
-        self.output_w -= (eta * (y_c - t_c) * self.hidden_w.T)
-        """
-        vecs = []
-        for c in contexts:
-            y_i = self.softmax(self.hidden_to_output(self.input_to_hidden(i)))[wi].max()
-            t_i = 1 if c == i else 0
-            v_d_wij = self.hidden_w[wi, j]
-            vecs.append((y_i - t_i) * v_d_wij)
-        return self.output_w[i, j] - eta * sum(vecs)
-        """
+            t_c[c, c] += 1
+        dv = (y_c - t_c) * np.repeat(self.hidden_w[wi], self.hidden_w.shape[0], axis=0).T
+        self.output_w -= eta * dv
 
     def softmax(self, v):
         """
