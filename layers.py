@@ -26,7 +26,7 @@ class SoftMaxWithError():
     layer of softmax with cross entropy error
     """
 
-    def __init__(sdlf):
+    def __init__(self):
         self.params = []
         self.grads = []
         self.y = None
@@ -78,7 +78,7 @@ class MatrixMultiply():
 
         w = self.params
         dw = self.x.T * dout
-        self.grads[0][...] = dw
+        self.grads[...] = dw
         dx = dout * w.T
         return dx
 
@@ -123,18 +123,6 @@ def cross_entropy_error(y, t):
     delta = 1e-7
     batch_size = y.shape[0]
     return -1 * np.sum(np.log(y[np.arange(batch_size), t] + delta))
-
-
-def sgd(params, grads, eta):
-    """
-    eta    : training rate
-    params : train parameter
-    grads  : gradient parameter
-
-    train by sgd
-    """
-
-    params -= eta * grads
 
 
 def sigmoid(v):
