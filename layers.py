@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class SoftMax(Object):
+class SoftMax():
     """
     layer of softmax
     """
@@ -21,7 +21,7 @@ class SoftMax(Object):
         return dx
 
 
-class SoftMaxWithError(Object):
+class SoftMaxWithError():
     """
     layer of softmax with cross entropy error
     """
@@ -51,7 +51,7 @@ class SoftMaxWithError(Object):
         return dx
 
 
-class MatrixMultiply(Object):
+class MatrixMultiply():
     """
     layer if matrix multiply
     """
