@@ -63,7 +63,7 @@ class Word2Vec(metaclass=ABCMeta):
         iter_size = self.sentence_size // batch_size
         contexts, words = [], []
         for s in self.sentences:
-            c, w = self.get_contexts_and_word(s)
+            c, w = self.__contexts_and_word(s)
             contexts.append(c)
             words.append(w)
 
@@ -72,8 +72,11 @@ class Word2Vec(metaclass=ABCMeta):
                 for c, w in zip(contexts[idx], words[idx]):
                     loss = self.__forward__(c, w)
                     self.__backward__()
-                    params, grads = self.duplication_remove(self.params, self.grads)
+                    params, grads = self.__duplication_remove(self.params, self.grads)
                     self.__sgd__(params, grads, eta)
+
+        # save model
+        self.__save__()
 
     def __sgd__(self, params, grads, eta):
         """
@@ -87,7 +90,7 @@ class Word2Vec(metaclass=ABCMeta):
         for param, grad in zip(params, grads):
             param -= eta * grad
 
-    def get_contexts_and_word(self, sentence: list):
+    def __contexts_and_word(self, sentence: list):
         """
         sentence : word in list of one sentence
         ex.) ["I", "have", "a", "pen"]
@@ -115,12 +118,13 @@ class Word2Vec(metaclass=ABCMeta):
 
         return contexts_list, words
 
-    def duplication_remove(self, params_orig, grads_orig):
+    def __duplication_remove(self, params_orig, grads_orig):
         """
         params_orig : numpy matrix of params
         grads_orig  : numpy matrix of grads
 
         remove duplication value
+        ref : https://github.com/oreilly-japan/deep-learning-from-scratch-2/blob/master/common/trainer.py
         """
 
         params, grads = params_orig[:], grads_orig[:]
@@ -149,6 +153,61 @@ class Word2Vec(metaclass=ABCMeta):
                 if flag:
                     break
         return params, grads
+
+    def __save__(self):
+        """
+        save training model as .npy file
+        """
+
+        np.save("word2vec_model.npy", self.wv)
+
+    def load(self, name: str="word2vec_model.npy"):
+        """
+        load training model
+        """
+
+        self.wv = np.load(name)
+
+    def similar_word(self, word: str, num: int=10):
+        """
+        word : word in vocab
+        num  : number to show
+
+        show words similar to word of argument
+        """
+
+        if word not in self.vocab:
+            print("この単語は学習されていません")
+            return
+        vec_dict = {}
+        for i, wordvec in enumerate(self.wv):
+            vec_dict[self.vocab[i]] = self.degree_of_similarity(word, self.vocab[i])
+        for k, v in sorted(vec_dict.items(), key=lambda x: -x[1])[:num]:
+            print(k + "\t" + str(v))
+
+    def degree_of_similarity(self, word1: str, word2: str):
+        """
+        word1 : word in vocab
+        word2 : word in vocab
+        degree of similarity between two words
+        """
+
+        if word1 not in self.vocab or word2 not in self.vocab:
+            print("この単語は学習されていません")
+            return
+        v1 = self.wv[self.vocab.index(word1)]
+        v2 = self.wv[self.vocab.index(word2)]
+        return self.__cos_sim(v1, v2)
+
+    def __cos_sim(self, v1, v2):
+        """
+        v1 : vector
+        v2 : vector
+
+        return cosine similarity between 2 vectors
+        """
+
+        return np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
 
 
 class Skipgram(Word2Vec):
