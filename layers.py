@@ -123,3 +123,45 @@ def cross_entropy_error(y, t):
     delta = 1e-7
     batch_size = y.shape[0]
     return -1 * np.sum(np.log(y[np.arange(batch_size), t] + delta))
+
+
+def sgd(params, grads, eta):
+    """
+    eta    : training rate
+    params : train parameter
+    grads  : gradient parameter
+
+    train by sgd
+    """
+
+    params -= eta * grads
+
+
+def sigmoid(v):
+    """
+    v : vector of numpy
+
+    get sigmoid value
+    implements measures of overflow
+    """
+
+    # calculation range
+    sig_range = 34.53877639491
+    if v <= -sig_range:
+        return 1e-15
+    elif v >= sig_range:
+        return 1.0 - 1e-15
+    return 1.0 / (1.0 + np.exp(-v))
+
+
+def sigmoid_gradient(fs):
+    """
+    fs : sigmoid value
+
+    gradient of sigmoid method
+    ex)
+    fs = sigmoid(v)
+    sigmoid_gradient(fs)
+    """
+
+    return fs * (1 - fs)
