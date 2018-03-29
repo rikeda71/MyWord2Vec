@@ -51,6 +51,38 @@ class SoftMaxWithError(Object):
         return dx
 
 
+class MatrixMultiply(Object):
+    """
+    layer if matrix multiply
+    """
+
+    def __init__(self, w):
+        self.params = w
+        self.grads = np.zeros_like(w)
+        self.x = None
+
+    def forward(self, x):
+        """
+        x : input of forward propagation
+        """
+
+        w = self.params
+        self.x = x
+        out = x * w
+        return out
+
+    def backward(self, dout):
+        """
+        dout : input of backward propagation
+        """
+
+        w = self.params
+        dw = self.x.T * dout
+        self.grads[0][...] = dw
+        dx = dout * w.T
+        return dx
+
+
 def softmax(v):
     """
     v : matrix or vector of numpy
