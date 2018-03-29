@@ -43,7 +43,7 @@ class Word2Vec(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def __backward__(self, cotexts, word):
+    def __backward__(self, dout):
         pass
 
     def train(self, algorithm="skipgram", window: int=3, eta: float=0.1):
@@ -74,6 +74,11 @@ class Skipgram(Word2Vec):
         loss = sum([l.forward(s, self.one_hot(i)) for i, l in zip(range(self.window * 2), self.lossLayer)])
         return loss
 
+    def __backward__(self, dout=1):
+        ds = sum([l.backward(dout) for l in self.lossLayer])
+        dh = self.outLayer.backward(ds)
+        self.inLayer.backward(dh)
+
 
 class Cbow(Word2Vec):
     """
@@ -87,6 +92,12 @@ class Cbow(Word2Vec):
 
     def __forward__(self, contexts, word):
         h = sum([l.forward(s, self.one_hot(i)) for i, l in zip(range(self.window * 2), self.inLayer)]) / len(self.inLayer)
-        s = self.outLayer(h)
+        s = self.outLayer.forward(h)
         loss = self.lossLayer.forward(s, self.one_hot(word))
         return loss
+
+    def __backward__(self, dout=1):
+        ds = self.lossLayer.backward(dout)
+        da = self.outLayer.backward(ds) / len(self.inLayer)
+        for l in self.inLayer:
+            l.backward(da)
