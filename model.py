@@ -49,7 +49,7 @@ class Word2Vec(metaclass=ABCMeta):
     def __backward__(self, dout):
         pass
 
-    def train(self, algorithm="skipgram", eta: float=0.1, epoch_size: int=100, batch_size: int=32):
+    def train(self, eta: float=0.1, epoch_size: int=100, batch_size: int=32):
         """
         algorithm  : learn method. skipgram or cbow(continuous bag-of-words)
         window     : range of surrounding words
@@ -184,7 +184,7 @@ class Cbow(Word2Vec):
     """
 
     def __set__(self, hidden_w, output_w):
-        self.inLayer = [MatrixMultiply(hidden_w) for i in ragen(len(self.window))]
+        self.inLayer = [MatrixMultiply(hidden_w) for i in range(self.window)]
         self.outLayer = MatrixMultiply(output_w)
         self.lossLayer = SoftMaxWithError()
         layers = self.inLayer + [self.outLayer]
@@ -193,7 +193,7 @@ class Cbow(Word2Vec):
             self.grads.append(layer.grads)
 
     def __forward__(self, contexts, word):
-        h = sum([l.forward(s, self.one_hot[i])
+        h = sum([l.forward(self.one_hot[i])
                  for l, i in zip(self.inLayer, contexts) if i != 1])
         h /= len(self.inLayer)
         s = self.outLayer.forward(h)
