@@ -166,7 +166,7 @@ class Word2Vec(metaclass=ABCMeta):
         load training model
         """
 
-        self.wv = np.load(name)
+        self.wv = np.mat(np.load(name))
 
     def similar_word(self, word: str, num: int=10):
         """
@@ -201,13 +201,14 @@ class Word2Vec(metaclass=ABCMeta):
 
     def __cos_sim(self, v1, v2):
         """
-        v1 : vector
-        v2 : vector
+        v1 : matrix
+        v2 : matrix
 
         return cosine similarity between 2 vectors
         """
 
-        return np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
+        # return np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
+        return np.array(v1 * v2.T / (np.linalg.norm(v1) * np.linalg.norm(v2)))[0, 0]
 
 
 class Skipgram(Word2Vec):
